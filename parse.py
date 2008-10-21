@@ -2,7 +2,14 @@
 
 import getopt, sys
 
+START_RULE = 'ROOT'
+
 grammar = {}
+
+def parse(tokens):
+    tree = { }
+    states = {0: [(START_RULE, 0, 0)]}
+    # TODO: Ummm...
 
 def parse_rule(line):
     line = line.split('#')[0].split()
