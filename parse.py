@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+import getopt, sys
+
 grammar = {}
 
 def parse_rule(line):
@@ -11,3 +13,21 @@ def parse_rule(line):
         
 def make_gramar(file):
     [prase_rule(line) for line in open(file, 'r').readlines()]
+
+
+if __name__ == '__main__':
+    try:
+        opts, args = getopt.getopt(sys.argv[1:], "t")
+    except getopt.GetoptError, err:
+        print str(err)
+        sys.exit(2)
+    trace = false # Set whether to trace output using "#" comments
+    for o, a in opts:
+        if o == '-t':
+            trace = true
+    if len(args != 2):
+        print 'unhandled option'
+        sys.exit(2)
+
+    make_grammar(args[0])
+    print grammar
