@@ -1,0 +1,124 @@
+store each column as a list
+
+for each column keep a hash from prediction terminal to node
+
+node is  (int .  That is a tuple of int and another tuple considing of what ever our format for rules
+is and a  list of refrences to parent rules.
+
+NOTE: make sure to handle  multi work tokens
+1) scan sentence and break into tokens.
+
+basic structure
+
+our table is [({},{})]
+
+a list of two tuples  one maps the left hand side of the gramer to the rules, the other mapes what we predicted to the rules.
+we need the second one for fast scanning
+table=[]
+#init table
+for each token in sentence.split():
+    table.append( ({},{}) );
+
+table[0][0][root]=(1,( [s,root],[]))
+
+for each column in table:
+
+
+pseudo code for recursive decent is probably our predict function. :
+
+#symbol    the sybol we wish to expand eg VP
+#parent  the rule that led to this.  assumed to be tuple like(S,VP,NP)  for S->NP VP
+#grammar     the dictionary defining the grammar . a hash table with the key as the left hand side and the value was the right hand side.  where lhs ->rhs
+
+#typesExpanded     a list of types we have expanded into the container
+#container    the container we are expanding into. should be a has table
+
+recursive expand(symbol,parent,grammar, typesExpanded,container)
+       # for each expansion of say  S   eg if s -> foo bar and S-> narf fnord   then we would get foo and bar as one expansion and narf and fnord as another
+       for each expansion  in grammar[symbol]:
+             # eg NP VP or is it true that S
+             if expansion[0] not in grammar:
+                    # add to container
+
+                   # now what we want to add depends on the the format.(predict ( an int) ,( tuple rule , list  parents ))
+                     # we have lhs -> . expansion[0] expansion[1:]
+                    # so we are predicting expansion[0]. this means we want an int that points to it ( this is either 0 if we are not including LHS, or 1 if we are)
+                    # the rule is given by (lhs, expansion). Note if we generate this here it will not be the correct refrence
+                    # and the parent is parent
+                   
+    
+              else if expansion[0] not in types expanded :
+                    add expansion[0] to types expanded
+    
+                    expand(expansion[0],(lhs,expansion),grammar,typesExpanded,container);
+#############################################################           
+            i think this is a little screw ball because of how we are  refrencing rules.
+
+right the grammar dictionary gives us a stuff in the form of  grammar[LHS]=RHS   ( eg gramar[s]=["NP","VP"])
+
+but we have rules of the form (LHS,RHS). perhaps it is better to have the grammar dictionary just return all the ruels
+for that LHS.   so it would return o list of rules of the form (LHS,RHS)??
+#######################################################
+S-> NP VP
+lets have rules be tuples of ("S","NP","VP")
+
+and entries in the parse table of the form [start at,  index to predictor, rule, list parents[])
+
+must be list so we can change
+
+grammar["S"]=("S","NP","VP")
+
+container_rules should be hash keyed on rule maping to entry
+container_predictor should be a hash keyed on prediction mapping to entry
+
+
+it is the things we have in a given column
+
+## open question if parent here is actuall what we want to use for expanding
+
+predictor(symbol,parent_rule,container,grammar,index)
+    for rule in grammar[symbol]:
+        #rule[1] is the first symbol on the right hand side
+        # rule[1] is the right hand side. if its not in the grammar, then its a terminal.       
+        if rule[1] not in grammar:
+            if rule not in container:
+                entry=(index,1,rule,[parrent_rule])
+                container.add(entry);
+                 add  rule[1] = entry to container_predictor
+               
+            else:
+               
+                container[rule][3]+=parrent_rule;
+        else:
+            predictor(rule[1].rule,container,grammar,index)           
+
+
+
+current column=i
+for each entry in my current column
+    call predictor on entry[2][1]
+look at token between i and j. let this be token 
+
+#scan
+for each entry in container_predictor[token]
+    entry1=copy of entry
+    increment entry 1 pointer by 1
+   columns[i+1].container.add[entry1]
+
+for each entry in container_predictor[""] # ie where we predict nothing  ... as in we have seen the whole rule
+       column of interest = entry[0]
+       left_symbol_of_rule_completed=entry[3][0]
+       for each entry1 in columns[column of interest].container_predictor[left_symbol_of_rule_competed]
+            enty_copy=entry1;
+            entry_copy[1]+=1 # increment predict pointer by 1
+            column[i].container.[entry_copy[2]]=entry_copy
+            column[i].container_predict[thing_predicted_by_copy]=entry_copy
+
+
+repeat for  each column.
+
+
+so i do not think we actually want to use tuples for  the entries
+and also i think predict should act on entries, not rules.
+predictor should also not expand things its already done.
+should also probably be done differently to allow left corner tricks.

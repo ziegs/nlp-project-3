@@ -16,7 +16,7 @@ def parse_rule(line):
     if not len(line) or '#' in line[0]:
         return
     weight, symbol, expansion = float(line[0]), line[1], line[2:]
-    grammar[symbol] = grammar.get(symbol, []) + [(weight, expansion)]
+    grammar[symbol] = grammar.get(symbol, []) + [(weight, symbol, expansion)]
         
 def make_grammar(file):
     [parse_rule(line) for line in open(file, 'r').readlines()]
