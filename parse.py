@@ -7,23 +7,55 @@ psyco.full()
 START_RULE = 'ROOT'
 
 class EarleyParser:
+    def __init__(self, grammar):
+        self._grammar = grammar
+        self._state = {}
+    def _add_rule(column, rule):
+        self._state[column] = self._state.get(column, []) + [rule]
 
-    def _scan(self, kwargs):
+    def _scan(self): # I need args
         pass
 
-    def _predict(self, kwargs):
+    def _predict(self): # I need args
         pass
 
-    def _complete(self, kwargs):
+    def _complete(self): # I need args
         pass
 
     def parse(self, tokens):
-        pass
+        grammar = self._grammar
+        is_nonterminal = grammar.is_nonterminal
+        is_terminal = grammar.is_terminal
+        
+        tok_len = len(tokens)
+        self._add_rule(0, (2, self._grammar.start()))
+        for i in xrange(tok_len):
+            for dot_rule in self._state[i]:
+                dot_pos = dot_rule[0]
+                rule = dot_rule[1]
+                try:
+                    dotsym = rule[dot_pos]
+                except IndexError:
+                    dotsym = None
+                    
+                if is_terminal(dotsym):
+                    # scan
+                    pass
+                elif is_nonterminal(dotsym):
+                    #predict
+                    pass
+                elif dotsym == None:
+                    # complete
+                    pass
+                
 
 class Grammar:
     def __init__(self, file):
         self.grammar = {}
         self._make_grammar(file)
+
+        self.is_terminal = lambda symbol: len(self.grammar[symbol]) == 1
+        self.is_nonterminal = lambda symbol: len(self.grammar[symbol]) != 1
         
     def _parse_rule(self, line):
         line = line.split('#')[0].split()
@@ -34,6 +66,12 @@ class Grammar:
         
     def _make_grammar(self, file):
         [self._parse_rule(line) for line in open(file, 'r').readlines()]
+
+    def get(self, rule):
+        return grammar.get(rule, None)
+
+    def start(self):
+        return grammar['ROOT']
 
     def __str__(self):
         output = ""
