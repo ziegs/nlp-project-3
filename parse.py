@@ -1,8 +1,11 @@
 #!/usr/bin/env python
 
 import getopt, sys
-import psyco
-psyco.full()
+try:
+    import psyco
+    psyco.full()
+except ImportError:
+    pass
 
 START_RULE = 'ROOT'
 
