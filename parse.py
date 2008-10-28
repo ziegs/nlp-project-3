@@ -15,6 +15,9 @@ class EarleyParser:
         self._grammar = grammar
         self._state = {} # FIXME
 
+    def get_state_table(self):
+        return self._state
+
     def _add_entry(self, column, entry):
         if self._state.get(column) == None:
             self._state[column] = []
@@ -38,7 +41,6 @@ class EarleyParser:
             try:
                 dotsym = rule[dot_pos]
             except IndexError:
-                # print '# Error with rule %s' % str(i)
                 continue
             if dotsym == lhs:
                 self._add_entry(state, (i[0], i[1] + 1, i[2], i[3]))
@@ -47,14 +49,14 @@ class EarleyParser:
         self.tokens = tokens
         self.cur_token = 0
         grammar = self._grammar
-        
+
         tok_len = len(tokens)
 
         # Rule format: (start at, index to predictor, rule, clients)
         self._add_entry(0, (0, 2, self._grammar.start(), []))
 
         # Here is the actual algorithm
-        for i in xrange(tok_len - 1):
+        for i in xrange(tok_len):
             count = 0
             for entry in self._state[i]:
                 count += 1
@@ -64,16 +66,19 @@ class EarleyParser:
                     dotsym = rule[dot_pos]
                 except IndexError:
                     dotsym = None
-                if dotsym is not None and grammar.is_terminal(dotsym):
-                    self._scan(dotsym, i, entry)
-                elif dotsym is not None and grammar.is_nonterminal(dotsym):
-                    self._predict(dotsym, i)
-                elif dotsym == None:
+
+                if dotsym == None:
                     self._complete(i, entry)
-                print count
-            print self._state[i]
-            print 'finish loop %d' % i
-        print self._state[-1]
+                elif grammar.is_terminal(dotsym):
+                    self._scan(dotsym, i, entry)
+                elif grammar.is_nonterminal(dotsym):
+                    self._predict(dotsym, i)
+
+        print self._state[tok_len]
+        for i in self._state[tok_len]:
+            if i[2][1] == 'ROOT':
+                return True
+        return False
                 
 
 class Grammar:
@@ -82,7 +87,7 @@ class Grammar:
         self._make_grammar(file)
 
     def is_terminal(self, symbol): return self.grammar.get(symbol) == None
-    def is_nonterminal(self, symbol): return len(self.grammar.get(symbol)) != 1
+    def is_nonterminal(self, symbol): return len(self.grammar.get(symbol)) > 0
         
     def _parse_rule(self, line):
         line = line.split('#')[0].split()
@@ -90,7 +95,7 @@ class Grammar:
             return
         weight, symbol, expansion = float(line[0]), line[1], line[2:]
         self.grammar[symbol] = self.grammar.get(symbol, []) + [(weight, symbol) + tuple(expansion)]
-        
+
     def _make_grammar(self, file):
         [self._parse_rule(line) for line in open(file, 'r').readlines()]
 
@@ -101,7 +106,6 @@ class Grammar:
         return self.grammar['ROOT'][0]
 
     def __str__(self):
-        print self.grammar
         output = ""
         for lhs in self.grammar.keys():
             fmtstring = ""
@@ -131,4 +135,15 @@ if __name__ == '__main__':
 
     grammar = Grammar(args[0])
     parser = EarleyParser(grammar)
-    parser.parse("3 * 5")
+    valid = parser.parse( "3 * 5".split() )
+    if valid:
+        print "Yes"
+    else:
+        print "No"
+    #except:
+    #    tbl = parser.get_state_table()
+    #    for col in tbl.keys():
+    #        print "**** COLUMN %d" % col
+    #        for entry in tbl[col]:
+    #            print entry
+    #        print "**** \t\t ****"
