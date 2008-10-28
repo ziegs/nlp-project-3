@@ -60,12 +60,14 @@ class EarleyParser:
 
     def _predict(self, symbol, state):
         expansions = self._grammar.get(symbol)
+        self._make_progress('Predicting')
         for rule in expansions:
             self._add_entry(state, (state, 2, rule, [rule]))
-            self._make_progress('Predicting')
+            self._make_progress()
             
     def _complete(self, state, entry):
         lhs = entry[2][1]
+        self._make_progress('Attaching')
         for i in self._state_by_predict[entry[0]].get(lhs,[]):
             dot_pos = i[1]
             rule = i[2]
@@ -75,7 +77,7 @@ class EarleyParser:
                 continue
             if dotsym == lhs:
                 self._add_entry(state, (i[0], i[1] + 1, i[2], i[3]+[entry[3]]))
-            self._make_progress('Attaching')
+            self._make_progress()
 
     def _best_parse_help(self, trace):
         #print trace
