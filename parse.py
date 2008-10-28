@@ -14,7 +14,12 @@ class EarleyParser:
     def __init__(self, grammar):
         self._grammar = grammar
         self._state = {} # FIXME
-        self._state_by_predict=[]
+        self._state_by_predict = []
+
+    def _reset(self):
+        self._state = {}
+        self._state_by_predict = []
+        self.tokens = None
 
     def get_state_table(self):
         return self._state
@@ -62,7 +67,23 @@ class EarleyParser:
             if dotsym == lhs:
                 self._add_entry(state, (i[0], i[1] + 1, i[2], i[3]+[entry[3]]))
 
+    def _best_parse_help(self, trace):
+        #print trace
+        rule = trace[0][1]
+        o = "(%s " % (rule)
+        for j in xrange(len(trace[1:])):
+            if len(trace[j + 1]) == 1:
+                nt = trace[j +1][0]
+                o += '(%s %s)' % (nt[1], nt[2])
+            else:
+                o += self._best_parse_help(trace[j + 1])
+        return o + ")"
+    def get_best_parse(self, trace):
+        return "(ROOT %s)" % self._best_parse_help(trace)
+
     def parse(self, tokens):
+        self._reset()
+        
         self.tokens = tokens
         self.cur_token = 0
         grammar = self._grammar
@@ -91,11 +112,12 @@ class EarleyParser:
                     self._scan(dotsym, i, entry)
                 elif grammar.is_nonterminal(dotsym):
                     self._predict(dotsym, i)
-
         for i in self._state[tok_len]:
             if i[2][1] == START_RULE:
+                print self.get_best_parse(i[3][0])
                 return True
         return False
+    
                 
 
 class Grammar:
@@ -161,11 +183,11 @@ if __name__ == '__main__':
         if len(sen) == 0:
             continue
         valid = parser.parse(sen)
-        print sen 
+        print "# Parsing: %s" % str(sen)
         if valid:
-            print "Yes"
+            print "# Yes"
         else:
-            print "No"
+            print "# No"
 
         if trace:
             pass  
