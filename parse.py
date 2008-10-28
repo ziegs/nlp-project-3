@@ -18,6 +18,7 @@ class EarleyParser:
 
     def get_state_table(self):
         return self._state
+    
     def _setup_state_by_predict_table(self,length):
         for i in xrange(length):
             self._state_by_predict.append({})
@@ -36,7 +37,7 @@ class EarleyParser:
 
         if entry not in self._state[column]:
             self._state[column].append(entry)
-            self._state_by_predict[column][dotsym]=self._state_by_predict[column].get(dotsym,[])+[entry]
+            self._state_by_predict[column][dotsym] = self._state_by_predict[column].get(dotsym,[]) + [entry]
                 
     def _scan(self, word, state, entry):
         if state == len(self.tokens):
@@ -92,7 +93,7 @@ class EarleyParser:
                     self._predict(dotsym, i)
 
         for i in self._state[tok_len]:
-            if i[2][1] == 'ROOT':
+            if i[2][1] == START_RULE:
                 return True
         return False
                 
@@ -119,7 +120,7 @@ class Grammar:
         return self.grammar.get(rule, None)
 
     def start(self):
-        return self.grammar['ROOT'][0]
+        return self.grammar[START_RULE][0]
 
     def __str__(self):
         output = ""
@@ -133,13 +134,7 @@ class Grammar:
                     fmtstring += " | "
             output += "%s -> %s\n" % (lhs, fmtstring)
         return output
-def sentences(file):
-    sentences=[]
-    for line in open(file,'r').readlines():
-        tokens=line.split()
-        if len(tokens)!=0:
-            sentences.append(tokens)
-    return sentences
+
 if __name__ == '__main__':
     try:
         opts, args = getopt.getopt(sys.argv[1:], "tc")
@@ -147,7 +142,7 @@ if __name__ == '__main__':
         print str(err)
         sys.exit(2)
     trace = False # Set whether to trace output using "#" comments
-    columns=False 
+    columns = False 
     for o, a in opts:
         if o == '-t':
             trace = true
@@ -159,26 +154,25 @@ if __name__ == '__main__':
 
     grammar = Grammar(args[0])
     parser = EarleyParser(grammar)
-    for sen in sentences(args[1]):
-            valid = parser.parse(sen)
-            print sen 
-            if valid:
-                print "Yes"
-            else:
-                print "No"
 
-            if trace:
-               pass  
-            if columns: 
-                for i in parser._state.keys():
-                    print '*** Column %d' % i
-                    for sym in parser._state[i]:
-                        print sym
-                    print '***'
-    #except:
-    #    tbl = parser.get_state_table()
-    #    for col in tbl.keys():
-    #        print "**** COLUMN %d" % col
-    #        for entry in tbl[col]:
-    #            print entry
-    #        print "**** \t\t ****"
+    sentences = open(args[1], 'r').readlines()
+    for sen in sentences:
+        sen = sen.split()
+        if len(sen) == 0:
+            continue
+        valid = parser.parse(sen)
+        print sen 
+        if valid:
+            print "Yes"
+        else:
+            print "No"
+
+        if trace:
+            pass  
+        if columns:
+            states = parser.get_state_table()
+            for i in states.keys():
+                print '*** Column %d' % i
+                for sym in states[i]:
+                    print sym
+                print '***'
