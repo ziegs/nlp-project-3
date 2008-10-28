@@ -15,11 +15,18 @@ class EarleyParser:
         self._grammar = grammar
         self._state = {} # FIXME
         self._state_by_predict = []
+        self._progress = 0
 
     def _reset(self):
         self._state = {}
         self._state_by_predict = []
         self.tokens = None
+        self._progress = 0
+
+    def _make_progress(self):
+        self._progress += 1
+        if self._progress % 50 == 0:
+            sys.stderr.write('.')
 
     def get_state_table(self):
         return self._state
@@ -49,12 +56,14 @@ class EarleyParser:
             pass
         elif self.tokens[state] == word:
             self._add_entry(state + 1, (entry[0], entry[1] + 1, entry[2], entry[3]))
+        self._make_progress()
 
     def _predict(self, symbol, state):
         expansions = self._grammar.get(symbol)
         for rule in expansions:
             self._add_entry(state, (state, 2, rule, [rule]))
-        
+            self._make_progress()
+            
     def _complete(self, state, entry):
         lhs = entry[2][1]
         for i in self._state_by_predict[entry[0]].get(lhs,[]):
@@ -66,6 +75,7 @@ class EarleyParser:
                 continue
             if dotsym == lhs:
                 self._add_entry(state, (i[0], i[1] + 1, i[2], i[3]+[entry[3]]))
+            self._make_progress()
 
     def _best_parse_help(self, trace):
         #print trace
@@ -93,7 +103,7 @@ class EarleyParser:
         self._setup_state_by_predict_table(tok_len+2)
         # Rule format: (start at, index to predictor, rule, clients)
         self._add_entry(0, (0, 2, self._grammar.start(), []))
-
+        sys.stderr.write('# Parsing...')
         # Here is the actual algorithm
         for i in xrange(tok_len + 1):
             count = 0
@@ -112,6 +122,8 @@ class EarleyParser:
                     self._scan(dotsym, i, entry)
                 elif grammar.is_nonterminal(dotsym):
                     self._predict(dotsym, i)
+            self._make_progress()
+        sys.stderr.write('# ...done!')
         for i in self._state[tok_len]:
             if i[2][1] == START_RULE:
                 print self.get_best_parse(i[3][0])
