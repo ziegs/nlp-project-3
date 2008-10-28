@@ -123,7 +123,10 @@ class EarleyParser:
 class Grammar:
     def __init__(self, file):
         self.grammar = {}
+        self.num_rules = 0
+        print "# Parsing grammar..."
         self._make_grammar(file)
+        print "# Parsed %d grammar rules." % (self.num_rules)
 
     def is_terminal(self, symbol): return self.grammar.get(symbol) == None
     def is_nonterminal(self, symbol): return len(self.grammar.get(symbol)) > 0
@@ -134,6 +137,7 @@ class Grammar:
             return
         weight, symbol, expansion = float(line[0]), line[1], line[2:]
         self.grammar[symbol] = self.grammar.get(symbol, []) + [(weight, symbol) + tuple(expansion)]
+        self.num_rules += 1
 
     def _make_grammar(self, file):
         [self._parse_rule(line) for line in open(file, 'r').readlines()]
@@ -182,8 +186,8 @@ if __name__ == '__main__':
         sen = sen.split()
         if len(sen) == 0:
             continue
+        print "# Parsing: %s" % str(' '.join(sen))
         valid = parser.parse(sen)
-        print "# Parsing: %s" % str(sen)
         if valid:
             print "# Yes"
         else:
