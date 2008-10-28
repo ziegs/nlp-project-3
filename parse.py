@@ -122,37 +122,49 @@ class Grammar:
                     fmtstring += " | "
             output += "%s -> %s\n" % (lhs, fmtstring)
         return output
-
-
+def sentences(file):
+    sentences=[]
+    for line in open(file,'r').readlines():
+        tokens=line.split()
+        if len(tokens)!=0:
+            sentences.append(tokens)
+    print sentences 
+    return sentences
 if __name__ == '__main__':
     try:
-        opts, args = getopt.getopt(sys.argv[1:], "t")
+        opts, args = getopt.getopt(sys.argv[1:], "tc")
     except getopt.GetoptError, err:
         print str(err)
         sys.exit(2)
     trace = False # Set whether to trace output using "#" comments
+    columns=False 
     for o, a in opts:
         if o == '-t':
             trace = true
+        if o == '-c':
+            columns=True
     if len(args) != 2:
         print 'unhandled option'
         sys.exit(2)
 
     grammar = Grammar(args[0])
     parser = EarleyParser(grammar)
-    valid = parser.parse( "Papa ate the caviar with the fork".split() )
-    if valid:
-        print "Yes"
-    else:
-        print "No"
+    for sen in sentences(args[1]):
+            valid = parser.parse(sen)
+            print sen 
+            if valid:
+                print "Yes"
+            else:
+                print "No"
 
-    if not trace:
-        sys.exit(0)
-    for i in parser._state.keys():
-        print '*** Column %d' % i
-        for sym in parser._state[i]:
-            print sym
-        print '***'
+            if trace:
+               pass  
+            if columns: 
+                for i in parser._state.keys():
+                    print '*** Column %d' % i
+                    for sym in parser._state[i]:
+                        print sym
+                    print '***'
     #except:
     #    tbl = parser.get_state_table()
     #    for col in tbl.keys():
