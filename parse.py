@@ -25,7 +25,9 @@ class EarleyParser:
             self._state[column].append(entry)
 
     def _scan(self, word, state, entry):
-        if self.tokens[state] == word:
+        if state == len(self.tokens):
+            pass
+        elif self.tokens[state] == word:
             self._add_entry(state + 1, (entry[0], entry[1] + 1, entry[2], entry[3]))
 
     def _predict(self, symbol, state):
@@ -56,7 +58,7 @@ class EarleyParser:
         self._add_entry(0, (0, 2, self._grammar.start(), []))
 
         # Here is the actual algorithm
-        for i in xrange(tok_len):
+        for i in xrange(tok_len + 1):
             count = 0
             for entry in self._state[i]:
                 count += 1
