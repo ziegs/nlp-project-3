@@ -32,7 +32,6 @@ class EarleyParser:
         
     def _complete(self, state, entry):
         lhs = entry[2][1]
-        print lhs
         for i in self._state[entry[0]]:
             dot_pos = i[1]
             rule = i[2]
@@ -42,7 +41,7 @@ class EarleyParser:
                 # print '# Error with rule %s' % str(i)
                 continue
             if dotsym == lhs:
-                self._add_entry(state, (state, i[1] + 1, i[2], i[3]))
+                self._add_entry(state, (i[0], i[1] + 1, i[2], i[3]))
 
     def parse(self, tokens):
         self.tokens = tokens
@@ -55,9 +54,10 @@ class EarleyParser:
         self._add_entry(0, (0, 2, self._grammar.start(), []))
 
         # Here is the actual algorithm
-        for i in xrange(tok_len):
-            changed = True
+        for i in xrange(tok_len - 1):
+            count = 0
             for entry in self._state[i]:
+                count += 1
                 dot_pos = entry[1]
                 rule = entry[2]
                 try:
@@ -70,6 +70,8 @@ class EarleyParser:
                     self._predict(dotsym, i)
                 elif dotsym == None:
                     self._complete(i, entry)
+                print count
+            print self._state[i]
             print 'finish loop %d' % i
         print self._state[-1]
                 
