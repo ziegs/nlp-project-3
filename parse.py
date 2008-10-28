@@ -140,6 +140,12 @@ if __name__ == '__main__':
         print "Yes"
     else:
         print "No"
+
+    for i in parser._state.keys():
+        print '*** Column %d' % i
+        for sym in parser._state[i]:
+            print sym
+        print '***'
     #except:
     #    tbl = parser.get_state_table()
     #    for col in tbl.keys():
