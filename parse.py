@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import getopt, sys
+import getopt, sys , pdb
 
 try:
     import psyco
@@ -14,20 +14,30 @@ class EarleyParser:
     def __init__(self, grammar):
         self._grammar = grammar
         self._state = {} # FIXME
+        self._state_by_predict=[]
 
     def get_state_table(self):
         return self._state
+    def _setup_state_by_predict_table(self,length):
+        for i in xrange(length):
+            self._state_by_predict.append({})
 
     def _setup_table(self, length):
         for i in xrange(length):
             self._state[i] = []
 
     def _add_entry(self, column, entry):
-        if self._state.get(column) == None:
-            self._state[column] = []
+        dot_pos=entry[1]
+        rule=entry[2]
+        try:
+            dotsym=rule[dot_pos]
+        except IndexError:
+            dotsym=None
+
         if entry not in self._state[column]:
             self._state[column].append(entry)
-
+            self._state_by_predict[column][dotsym]=self._state_by_predict[column].get(dotsym,[])+[entry]
+                
     def _scan(self, word, state, entry):
         if state == len(self.tokens):
             pass
@@ -37,11 +47,11 @@ class EarleyParser:
     def _predict(self, symbol, state):
         expansions = self._grammar.get(symbol)
         for rule in expansions:
-            self._add_entry(state, (state, 2, rule, []))
+            self._add_entry(state, (state, 2, rule, [rule]))
         
     def _complete(self, state, entry):
         lhs = entry[2][1]
-        for i in self._state[entry[0]]:
+        for i in self._state_by_predict[entry[0]].get(lhs,[]):
             dot_pos = i[1]
             rule = i[2]
             try:
@@ -49,7 +59,7 @@ class EarleyParser:
             except IndexError:
                 continue
             if dotsym == lhs:
-                self._add_entry(state, (i[0], i[1] + 1, i[2], i[3]))
+                self._add_entry(state, (i[0], i[1] + 1, i[2], i[3]+[entry[3]]))
 
     def parse(self, tokens):
         self.tokens = tokens
@@ -58,6 +68,7 @@ class EarleyParser:
 
         tok_len = len(tokens)
         self._setup_table(tok_len + 1)
+        self._setup_state_by_predict_table(tok_len+2)
         # Rule format: (start at, index to predictor, rule, clients)
         self._add_entry(0, (0, 2, self._grammar.start(), []))
 
@@ -128,7 +139,6 @@ def sentences(file):
         tokens=line.split()
         if len(tokens)!=0:
             sentences.append(tokens)
-    print sentences 
     return sentences
 if __name__ == '__main__':
     try:
