@@ -23,10 +23,10 @@ class EarleyParser:
         self.tokens = None
         self._progress = 0
 
-    def _make_progress(self):
+    def _make_progress(self, s=''):
         self._progress += 1
         if self._progress % 5000 == 0:
-            sys.stderr.write('.')
+            sys.stderr.write(s + '.')
 
     def get_state_table(self):
         return self._state
@@ -56,13 +56,13 @@ class EarleyParser:
             pass
         elif self.tokens[state] == word:
             self._add_entry(state + 1, (entry[0], entry[1] + 1, entry[2], entry[3]))
-        self._make_progress()
+        self._make_progress('Scanning')
 
     def _predict(self, symbol, state):
         expansions = self._grammar.get(symbol)
         for rule in expansions:
             self._add_entry(state, (state, 2, rule, [rule]))
-            self._make_progress()
+            self._make_progress('Predicting')
             
     def _complete(self, state, entry):
         lhs = entry[2][1]
@@ -75,7 +75,7 @@ class EarleyParser:
                 continue
             if dotsym == lhs:
                 self._add_entry(state, (i[0], i[1] + 1, i[2], i[3]+[entry[3]]))
-            self._make_progress()
+            self._make_progress('Attaching')
 
     def _best_parse_help(self, trace):
         #print trace
@@ -122,7 +122,7 @@ class EarleyParser:
                     self._scan(dotsym, i, entry)
                 elif grammar.is_nonterminal(dotsym):
                     self._predict(dotsym, i)
-            self._make_progress()
+            self._make_progress('Parsing')
         sys.stderr.write('# ...done!')
         for i in self._state[tok_len]:
             if i[2][1] == START_RULE:
