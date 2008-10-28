@@ -18,6 +18,10 @@ class EarleyParser:
     def get_state_table(self):
         return self._state
 
+    def _setup_table(self, length):
+        for i in xrange(length):
+            self._state[i] = []
+
     def _add_entry(self, column, entry):
         if self._state.get(column) == None:
             self._state[column] = []
@@ -53,7 +57,7 @@ class EarleyParser:
         grammar = self._grammar
 
         tok_len = len(tokens)
-
+        self._setup_table(tok_len + 1)
         # Rule format: (start at, index to predictor, rule, clients)
         self._add_entry(0, (0, 2, self._grammar.start(), []))
 
@@ -76,7 +80,6 @@ class EarleyParser:
                 elif grammar.is_nonterminal(dotsym):
                     self._predict(dotsym, i)
 
-        print self._state[tok_len]
         for i in self._state[tok_len]:
             if i[2][1] == 'ROOT':
                 return True
@@ -137,12 +140,14 @@ if __name__ == '__main__':
 
     grammar = Grammar(args[0])
     parser = EarleyParser(grammar)
-    valid = parser.parse( "3 * 5".split() )
+    valid = parser.parse( "Papa ate the caviar with the fork".split() )
     if valid:
         print "Yes"
     else:
         print "No"
 
+    if not trace:
+        sys.exit(0)
     for i in parser._state.keys():
         print '*** Column %d' % i
         for sym in parser._state[i]:
