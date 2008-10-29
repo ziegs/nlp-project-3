@@ -25,8 +25,10 @@ class EarleyParser:
 
     def _make_progress(self, s=''):
         self._progress += 1
+        if s != '':
+            sys.stderr.write(s)
         if self._progress % 5000 == 0:
-            sys.stderr.write(s + '.')
+            sys.stderr.write('.')
 
     def get_state_table(self):
         return self._state
@@ -58,7 +60,7 @@ class EarleyParser:
             self._add_entry(state + 1, (entry[0], entry[1] + 1, entry[2], entry[3]))
         self._make_progress('Scanning')
 
-    def _predict(self, symbol, state,predicted):
+    def _predict(self, symbol, state, predicted):
         if symbol not in predicted:
             predicted[symbol]=True
             expansions = self._grammar.get(symbol)
@@ -128,7 +130,7 @@ class EarleyParser:
                 elif grammar.is_nonterminal(dotsym):
                     self._predict(dotsym, i,predicted_symbols)
             self._make_progress('Parsing')
-        sys.stderr.write('# ...done!')
+        sys.stderr.write('\n# ...done!\n')
         for i in self._state[tok_len]:
             if i[2][1] == START_RULE:
                 print self.get_best_parse(i[3][0])
