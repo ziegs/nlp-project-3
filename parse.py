@@ -25,10 +25,8 @@ class EarleyParser:
 
     def _make_progress(self, s=''):
         self._progress += 1
-        if s != '':
-            sys.stderr.write(s)
         if self._progress % 5000 == 0:
-            sys.stderr.write('.')
+            sys.stderr.write(s + '.')
 
     def get_state_table(self):
         return self._state
