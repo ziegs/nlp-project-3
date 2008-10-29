@@ -124,10 +124,26 @@ class EarleyParser:
                 if dotsym == None:
                     self._complete(i, entry)
                 elif grammar.is_terminal(dotsym):
-                    self._scan(dotsym, i, entry)
+                    pass 
+                #    self._scan(dotsym, i, entry)
                 elif grammar.is_nonterminal(dotsym):
                     self._predict(dotsym, i,predicted_symbols)
+            # self.tokens[i] is the next token 
+            # we look at what predicts that token in our current state
+
+            if i != len(self.tokens):
+                for entry in self._state_by_predict[i].get(self.tokens[i],[]):
+                    dot_pos = entry[1]
+                    rule = entry[2]
+                    try:
+                        dotsym = rule[dot_pos]
+                    except IndexError:
+                        continue 
+
+                    self._scan(dotsym,i,entry)
+
             self._make_progress('Parsing')
+            
         sys.stderr.write('\n# ...done!\n')
         for i in self._state[tok_len]:
             if i[2][1] == START_RULE:
