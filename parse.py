@@ -11,14 +11,19 @@ except ImportError:
 START_RULE = 'ROOT'
 
 class EarleyParser:
-    def __init__(self, grammar):
+    def __init__(self, grammar, trace=False):
         self._grammar = grammar
-        self._state = {} # FIXME
+        self._state = []
         self._state_by_predict = []
         self._progress = 0
+        self._trace = trace
+
+    def _log(self, msg):
+        if self._trace:
+            sys.stderr.write(msg)
 
     def _reset(self):
-        self._state = {}
+        self._state = []
         self._state_by_predict = []
         self.tokens = None
         self._progress = 0
@@ -26,7 +31,7 @@ class EarleyParser:
     def _make_progress(self, s=''):
         self._progress += 1
         if self._progress % 5000 == 0:
-            sys.stderr.write(s + '.')
+            self._log(s + '.')
 
     def get_state_table(self):
         return self._state
@@ -37,7 +42,7 @@ class EarleyParser:
 
     def _setup_table(self, length):
         for i in xrange(length):
-            self._state[i] = []
+            self._state.append([])
 
     def _add_entry(self, column, entry):
         dot_pos=entry[1]
@@ -46,10 +51,15 @@ class EarleyParser:
             dotsym=rule[dot_pos]
         except IndexError:
             dotsym=None
-
-        if entry not in self._state[column]:
-            self._state[column].append(entry)
-            self._state_by_predict[column][dotsym] = self._state_by_predict[column].get(dotsym,[]) + [entry]
+            
+        states = self._state
+        if entry not in states[column]:
+            states[column].append(entry)
+            state_by_predict = self._state_by_predict[column]
+            if state_by_predict.has_key(dotsym):
+                state_by_predict[dotsym] += [entry]
+            else:
+                state_by_predict[dotsym] = [entry]
                 
     def _scan(self, word, state, entry):
         if state == len(self.tokens):
@@ -70,7 +80,11 @@ class EarleyParser:
     def _complete(self, state, entry):
         lhs = entry[2][1]
         self._make_progress('Attaching')
-        for i in self._state_by_predict[entry[0]].get(lhs,[]):
+        entry_state = entry[0]
+        pstate = self._state_by_predict[entry_state]
+        if not pstate.has_key(lhs):
+            return
+        for i in pstate[lhs]:
             dot_pos = i[1]
             rule = i[2]
             try:
@@ -107,7 +121,7 @@ class EarleyParser:
         self._setup_state_by_predict_table(tok_len+2)
         # Rule format: (start at, index to predictor, rule, clients)
         self._add_entry(0, (0, 2, self._grammar.start(), []))
-        sys.stderr.write('# Parsing...')
+        self._log('# Parsing...')
         # Here is the actual algorithm
         for i in xrange(tok_len + 1):
             count = 0
@@ -144,7 +158,7 @@ class EarleyParser:
 
             self._make_progress('Parsing')
             
-        sys.stderr.write('\n# ...done!\n')
+        self._log('\n# ...done!\n')
         for i in self._state[tok_len]:
             if i[2][1] == START_RULE:
                 print self.get_best_parse(i[3][0])
@@ -219,11 +233,12 @@ def main():
         sen = sen.split()
         if len(sen) == 0:
             continue
-        print "# Parsing: %s" % str(' '.join(sen))
+        if trace:
+            print "# Parsing: %s" % str(' '.join(sen))
         valid = parser.parse(sen)
-        if valid:
+        if valid and trace:
             print "# Yes"
-        else:
+        elif trace:
             print "# No"
 
         if trace:
@@ -240,7 +255,10 @@ def profile_main():
     # This is the main function for profiling 
     import cProfile, pstats
     prof = cProfile.Profile()
-    prof = prof.runctx("main()", globals(), locals())
+    try:
+        prof = prof.runctx("main()", globals(), locals())
+    except:
+        pass
     print "<pre>"
     stats = pstats.Stats(prof)
     stats.sort_stats("time")  # Or cumulative
@@ -252,7 +270,7 @@ def profile_main():
 
 if __name__ == '__main__':
     # Uncomment the following line to profile the app
-    # profile_main()
+    #profile_main()
     main()
 
     
