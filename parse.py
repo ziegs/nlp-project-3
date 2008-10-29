@@ -58,12 +58,14 @@ class EarleyParser:
             self._add_entry(state + 1, (entry[0], entry[1] + 1, entry[2], entry[3]))
         self._make_progress('Scanning')
 
-    def _predict(self, symbol, state):
-        expansions = self._grammar.get(symbol)
-        self._make_progress('Predicting')
-        for rule in expansions:
-            self._add_entry(state, (state, 2, rule, [rule]))
-            self._make_progress()
+    def _predict(self, symbol, state,predicted):
+        if symbol not in predicted:
+            predicted[symbol]=True
+            expansions = self._grammar.get(symbol)
+            self._make_progress('Predicting')
+            for rule in expansions:
+                self._add_entry(state, (state, 2, rule, [rule]))
+                self._make_progress()
             
     def _complete(self, state, entry):
         lhs = entry[2][1]
@@ -109,6 +111,7 @@ class EarleyParser:
         # Here is the actual algorithm
         for i in xrange(tok_len + 1):
             count = 0
+            predicted_symbols={}
             for entry in self._state[i]:
                 count += 1
                 dot_pos = entry[1]
@@ -123,7 +126,7 @@ class EarleyParser:
                 elif grammar.is_terminal(dotsym):
                     self._scan(dotsym, i, entry)
                 elif grammar.is_nonterminal(dotsym):
-                    self._predict(dotsym, i)
+                    self._predict(dotsym, i,predicted_symbols)
             self._make_progress('Parsing')
         sys.stderr.write('# ...done!')
         for i in self._state[tok_len]:
