@@ -222,7 +222,6 @@ def main():
 
 def profile_main():
     # This is the main function for profiling 
-    # We've renamed our original main() above to real_main()
     import cProfile, pstats
     prof = cProfile.Profile()
     prof = prof.runctx("main()", globals(), locals())
