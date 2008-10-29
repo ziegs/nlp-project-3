@@ -1,56 +1,76 @@
 #!/usr/bin/env python
+"""
+An Earley Parser for CS465, Fall '08
 
+Matt Ziegelbaum <mziegelbaum@acm.jhu.edu>
+Ian Miers <imichaelmiers@gmail.com>
+"""
 import getopt, sys , pdb
 
 try:
     import psyco
     psyco.full()
 except ImportError:
-    pass
+    sys.stderr.write("You don't have psyco installed. \
+        This will run faster with psyco.\n")
 
 START_RULE = 'ROOT'
 
+INFO = 1 # Info log level
+LOG = 0 # Implied
+WARN = 2 # Warning log level
+
 class EarleyParser:
+    """ A class for parsing sentences.  Implements Earley's Algorithm """
     def __init__(self, grammar, trace=False):
         self._grammar = grammar
         self._state = []
         self._state_by_predict = []
         self._progress = 0
         self._trace = trace
+        self.tokens = None
+        self.cur_token = 0
 
-    def _log(self, msg):
-        if self._trace:
+    def _log(self, msg, level=LOG):
+        """ Logs a message. """
+        if self._trace or level > 0:
             sys.stderr.write(msg)
 
     def _reset(self):
+        """ Reset the parser's state. """
         self._state = []
         self._state_by_predict = []
         self.tokens = None
         self._progress = 0
 
-    def _make_progress(self, s=''):
+    def _make_progress(self, msg=''):
+        """ Will mark a progress "." every 5000 operations. """
         self._progress += 1
         if self._progress % 5000 == 0:
-            self._log(s + '.')
+            self._log(msg + '.')
 
     def get_state_table(self):
+        """ Returns the state table. """
         return self._state
     
-    def _setup_state_by_predict_table(self,length):
+    def _setup_state_by_predict_table(self, length):
+        """ Initializes the state prediction table. """
         for i in xrange(length):
             self._state_by_predict.append({})
 
     def _setup_table(self, length):
+        """ Initializes Earley column table. """
         for i in xrange(length):
             self._state.append([])
 
     def _add_entry(self, column, entry):
-        dot_pos=entry[1]
-        rule=entry[2]
+        """ Adds an entry to a column in the state table. """
+        dot_pos = entry[1]
+        rule = entry[2]
         try:
-            dotsym=rule[dot_pos]
+            dotsym = rule[dot_pos]
         except IndexError:
-            dotsym=None
+            dotsym = None
             
         states = self._state
         if entry not in states[column]:
@@ -62,24 +82,26 @@ class EarleyParser:
                 state_by_predict[dotsym] = [entry]
                 
     def _scan(self, word, state, entry):
+        """ Scan phase of Earley's """
         if state == len(self.tokens):
             pass
         elif self.tokens[state] == word:
-            self._add_entry(state + 1, (entry[0], entry[1] + 1, entry[2], entry[3]))
+            self._add_entry(state + 1, (entry[0], entry[1] + 1, entry[2],
+                entry[3]))
         self._make_progress('Scanning')
 
-    def _predict(self, symbol, state, predicted,SJ):
+    def _predict(self, symbol, state, predicted, SJ):
         if symbol not in predicted:
-            predicted[symbol]=True
+            predicted[symbol] = True
             self._make_progress('Predicting')
             # given the possible left ancestors B  for the current token, 
             # for each of these , see if there is a rule for A -> B * 
             # if so expand 
             for B in SJ(symbol):
-                for rule in self._grammar.get((symbol,B)):
+                for rule in self._grammar.get((symbol, B)):
                     self._add_entry(state, (state, 2, rule, [rule]))
                     self._make_progress()
-            SJ[symbol]=[]
+            SJ[symbol] = []
     def _complete(self, state, entry):
         lhs = entry[2][1]
         self._make_progress('Attaching')
@@ -99,7 +121,9 @@ class EarleyParser:
             self._make_progress()
 
     def _best_parse_help(self, trace):
-        #print trace
+        """
+        Helper function for generating the lightest parse of a sentence.
+        """
         rule = trace[0][1]
         o = "(%s " % (rule)
         for j in xrange(len(trace[1:])):
@@ -110,17 +134,27 @@ class EarleyParser:
                 o += self._best_parse_help(trace[j + 1])
         return o + ")"
     def get_best_parse(self, trace):
+        """
+        Returns the lightest parse of the sentence.
+        """
         return "(ROOT %s)" % self._best_parse_help(trace)
-    # builds the left corner ancestor table for the givne column 
-    # SJ the left ancestor table for our current state
-    def _left_corner(self,SJ,Y):
+    
+    def _left_corner(self, SJ, Y):
+        """
+        Builds the left corner ancestor table for the given column 
+        SJ the left ancestor table for our current state.
+        """
         for X in self._grammar.get_P(Y):
             if X not in SJ : # if this is the first addition to SJ(X)
-                SJ[X]=[Y]  # add Y 
-                self._left_corner(SJ,X) # recursively process X 
+                SJ[X] = [Y]  # add Y 
+                self._left_corner(SJ, X) # recursively process X 
             else: # other wise just add Y 
-                SJ[X]=SJ.get(X,[])+[Y] # FIXME memory wastfull ?? better to do append ?
+                SJ[X] = SJ.get(X, []) + [Y] # FIXME memory wastfull ?? better to do append ?
+    
     def parse(self, tokens):
+        """
+        Parses a sentence of tokens into the appropriate syntax tree.
+        """
         self._reset()
         
         self.tokens = tokens
@@ -129,20 +163,20 @@ class EarleyParser:
 
         tok_len = len(tokens)
         self._setup_table(tok_len + 1)
-        self._setup_state_by_predict_table(tok_len+2)
+        self._setup_state_by_predict_table(tok_len + 2)
         # Rule format: (start at, index to predictor, rule, clients)
         self._add_entry(0, (0, 2, self._grammar.start(), []))
         self._log('# Parsing...')
         # Here is the actual algorithm
         for i in xrange(tok_len + 1):
-            token=None
-            if i!=len(self.tokens):
-                token=self.tokens[i]
-            SJ={} # the left ancestor table
+            token = None
+            if i != len(self.tokens):
+                token = self.tokens[i]
+            SJ = {} # the left ancestor table
             # build the left corner table 
-            self._left_corner(SJ,token)
-            print SJ 
-            predicted_symbols={}
+            self._left_corner(SJ, token)
+            self._log(str(SJ) + '\n', INFO)
+            predicted_symbols = {}
             for entry in self._state[i]:
                 dot_pos = entry[1]
                 rule = entry[2]
@@ -156,14 +190,15 @@ class EarleyParser:
                 elif grammar.is_terminal(dotsym):
                     pass 
                 #    self._scan(dotsym, i, entry)
-                # XXX FIXME  the pass above prevnets a bug in is non temrinal. it fails if given a terminal.
+                # XXX FIXME  the pass above prevnets a bug
+                # in is non temrinal. it fails if given a terminal.
                 # this is bad 
                 elif grammar.is_nonterminal(dotsym):
-                    self._predict(dotsym, i,predicted_symbols,SJ)
+                    self._predict(dotsym, i, predicted_symbols, SJ)
             # self.tokens[i] is the next token 
             # we look at what predicts that token in our current state
 
-            for entry in self._state_by_predict[i].get(token,[]):
+            for entry in self._state_by_predict[i].get(token, []):
                 dot_pos = entry[1]
                 rule = entry[2]
                 try:
@@ -171,7 +206,7 @@ class EarleyParser:
                 except IndexError:
                     continue 
 
-                self._scan(dotsym,i,entry)
+                self._scan(dotsym, i, entry)
 
             self._make_progress('Parsing')
             
@@ -185,27 +220,30 @@ class EarleyParser:
                 
 
 class Grammar:
-    def __init__(self, file):
+    def __init__(self, grammar_file):
         self.grammar = {}
-        self.P={}# the left parent table 
+        self.P = {}# the left parent table 
         self.num_rules = 0
         print "# Parsing grammar..."
-        self._make_grammar(file)
+        self._make_grammar(grammar_file)
         print "# Parsed %d grammar rules." % (self.num_rules)
-    def is_terminal(self, symbol): return self.grammar.get(symbol) == None
-    def is_nonterminal(self, symbol): return len(self.grammar.get(symbol)) > 0
+        
+    def is_terminal(self, symbol):
+        return self.grammar.get(symbol) == None
+    def is_nonterminal(self, symbol):
+        return len(self.grammar.get(symbol)) > 0
         
     def _parse_rule(self, line):
         line = line.split('#')[0].split()
         if not len(line) or '#' in line[0]:
             return
-        weight, symbol, leftchild ,restOfexpansion = float(line[0]), line[1], line[2], line[3:]
-        expansion=[leftchild]+restOfexpansion
-        key=(symbol,leftchild)
+        weight, symbol, leftchild, restOfexpansion = float(line[0]), line[1], line[2], line[3:]
+        expansion = [leftchild] + restOfexpansion
+        key = (symbol, leftchild)
         if key not in self.grammar: # if R(A,B) is empty add A to P(B)
-            self.P[leftchild]=self.P.get(leftchild,[])+[symbol]
-        if symbol== START_RULE:# we special case root 's entry to be root 
-            key=symbol 
+            self.P[leftchild] = self.P.get(leftchild,[]) + [symbol]
+        if symbol == START_RULE:# we special case root 's entry to be root 
+            key = symbol 
         self.grammar[key] = self.grammar.get(key, []) + [(weight, symbol) + tuple(expansion)]
         
         self.num_rules += 1
@@ -216,7 +254,7 @@ class Grammar:
     def get(self, rule):
         return self.grammar.get(rule, None)
     def get_P(self, rule):
-        return self.P.get(rule,[])
+        return self.P.get(rule, [])
     def start(self):
         return self.grammar[START_RULE][0]
 
@@ -239,13 +277,14 @@ def main():
     except getopt.GetoptError, err:
         print str(err)
         sys.exit(2)
+
     trace = False # Set whether to trace output using "#" comments
     columns = False 
     for o, a in opts:
         if o == '-t':
             trace = true
         if o == '-c':
-            columns=True
+            columns = True
     if len(args) != 2:
         print 'unhandled option'
         sys.exit(2)
