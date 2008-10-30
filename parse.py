@@ -20,6 +20,11 @@ INFO = 1 # Info log level
 LOG = 0 # Implied
 WARN = 2 # Warning log level
 
+def pretty(printme,space):
+    print "%s %s "%(space,printme[2])
+    if isinstance(printme[3],list):
+        pretty(printme[3],space+" ");
+
 class EarleyParser:
     """ A class for parsing sentences.  Implements Earley's Algorithm """
     def __init__(self, grammar, trace=False):
@@ -104,6 +109,10 @@ class EarleyParser:
                     self._make_progress()
             SJ[symbol] = []
     def _complete(self, state, entry):
+        """ Takes the state  and a completed entry
+        and attaches customers. Eg  we have NUM -> 3 as an entry
+        then we will add Factor ->num 
+        """
         lhs = entry[2][1]
         self._make_progress('Attaching')
         entry_state = entry[0]
@@ -121,8 +130,8 @@ class EarleyParser:
 
                 predict=i[1]-2
                 parse=i[3]
-                if predict<len(parse):
-                    parse[predict]=entry[3]
+               # if predict<len(parse):
+                parse[predict]=entry # is the rule
                 self._add_entry(state, (i[0], i[1] + 1, i[2], parse))
             self._make_progress()
 
@@ -156,7 +165,7 @@ class EarleyParser:
                 self._left_corner(SJ, X) # recursively process X 
             else: # other wise just add Y 
                 SJ[X] = SJ.get(X, []) + [Y] # FIXME memory wastfull ?? better to do append ?
-    
+     
     def parse(self, tokens):
         """
         Parses a sentence of tokens into the appropriate syntax tree.
@@ -202,7 +211,10 @@ class EarleyParser:
                     self._predict(dotsym, i, predicted_symbols, SJ)
 
             for sym in self._state[i]:
-                print sym
+                print sym[2]
+                print sym[3]
+                    
+                print "##"
 
             print ""
             # self.tokens[i] is the next token 
