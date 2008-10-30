@@ -99,7 +99,11 @@ class EarleyParser:
             # if so expand 
             for B in SJ.get(symbol,[]):
                 for rule in self._grammar.get((symbol, B)):
-                    self._add_entry(state, (state, 2, rule, [rule]))
+                    parse=[]
+                    for term in rule[2:]:
+                        
+                        parse.append(term);
+                    self._add_entry(state, (state, 2, rule, parse))
                     self._make_progress()
             SJ[symbol] = []
     def _complete(self, state, entry):
@@ -117,7 +121,13 @@ class EarleyParser:
             except IndexError:
                 continue
             if dotsym == lhs:
-                self._add_entry(state, (i[0], i[1] + 1, i[2], i[3]+[entry[3]]))
+                predict=i[1]-2
+                parse=i[3]
+                if predict<len(parse):
+                    print "ads"
+                    print entry[3]
+                    parse[predict]=entry[3]
+                self._add_entry(state, (i[0], i[1] + 1, i[2], parse))
             self._make_progress()
 
     def _best_parse_help(self, trace):
@@ -212,7 +222,8 @@ class EarleyParser:
         self._log('\n# ...done!\n')
         for i in self._state[tok_len]:
             if i[2][1] == START_RULE:
-                print self.get_best_parse(i[3][0])
+                print i[3]
+                # print self.get_best_parse(i[3])
                 return True
         return False
     
@@ -241,12 +252,11 @@ class Grammar:
         key = (symbol, leftchild)
         if key not in self.grammar: # if R(A,B) is empty add A to P(B)
             self.P[leftchild] = self.P.get(leftchild,[]) + [symbol]
-#        if symbol == START_RULE:# we special case root 's entry to be root 
- #           key = symbol 
         self.grammar[key] = self.grammar.get(key, []) + [(weight, symbol) + tuple(expansion)]
         # for 1  S-> NP VP we store S NP: 1 S NP VP and  S : 1 S NP VP
         key=symbol
         self.grammar[key] = self.grammar.get(key, []) + [(weight, symbol) + tuple(expansion)]
+
         self.num_rules += 1
 
     def _make_grammar(self, file):
@@ -262,14 +272,16 @@ class Grammar:
     def __str__(self):
         output = ""
         for lhs in self.grammar.keys():
-            fmtstring = ""
-            rhs = self.grammar[lhs]
-            l = len(rhs)
-            for i in xrange(l):
-                fmtstring += "%s" % ' '.join(rhs[i][2])
-                if i != l - 1:
-                    fmtstring += " | "
-            output += "%s -> %s\n" % (lhs, fmtstring)
+            if type(lhs) == type(()):
+                continue
+         
+            output+= "%s -> \n "%lhs 
+            for sym in self.grammar[lhs]:
+                output+="\t "
+                for s in sym[2:]:
+                    output+=" %s"%s
+                output+="\n"
+                
         return output
 
 def main():
@@ -292,7 +304,7 @@ def main():
 
     grammar = Grammar(args[0])
     parser = EarleyParser(grammar)
-
+    print grammar
     sentences = open(args[1], 'r').readlines()
     for sen in sentences:
         sen = sen.split()
