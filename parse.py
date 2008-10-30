@@ -99,10 +99,7 @@ class EarleyParser:
             # if so expand 
             for B in SJ.get(symbol,[]):
                 for rule in self._grammar.get((symbol, B)):
-                    parse=[]
-                    for term in rule[2:]:
-                        
-                        parse.append(term);
+                    parse = list(rule[2:])
                     self._add_entry(state, (state, 2, rule, parse))
                     self._make_progress()
             SJ[symbol] = []
@@ -121,12 +118,14 @@ class EarleyParser:
             except IndexError:
                 continue
             if dotsym == lhs:
-                predict=i[1]-2
-                parse=i[3]
-                if predict<len(parse):
-                    print "ads"
-                    print entry[3]
-                    parse[predict]=entry[3]
+                predict = i[1]-2
+                parse = i[3]
+                if True:#predict < len(parse):
+                    print "@@@@" 
+                    print entry
+                    print i 
+                    
+                    parse[predict] = entry[2]
                 self._add_entry(state, (i[0], i[1] + 1, i[2], parse))
             self._make_progress()
 
@@ -175,7 +174,7 @@ class EarleyParser:
         self._setup_table(tok_len + 1)
         self._setup_state_by_predict_table(tok_len + 2)
         # Rule format: (start at, index to predictor, rule, clients)
-        self._add_entry(0, (0, 2, self._grammar.start(), []))
+        self._add_entry(0, (0, 2, self._grammar.start(), [self._grammar.start()[2]]))
         self._log('# Parsing...')
         # Here is the actual algorithm
         for i in xrange(tok_len + 1):
@@ -204,6 +203,11 @@ class EarleyParser:
                 # this is bad 
                 elif grammar.is_nonterminal(dotsym):
                     self._predict(dotsym, i, predicted_symbols, SJ)
+
+            for sym in self._state[i]:
+                print sym
+
+            print ""
             # self.tokens[i] is the next token 
             # we look at what predicts that token in our current state
 
