@@ -118,14 +118,11 @@ class EarleyParser:
             except IndexError:
                 continue
             if dotsym == lhs:
-                predict = i[1]-2
-                parse = i[3]
-                if True:#predict < len(parse):
-                    print "@@@@" 
-                    print entry
-                    print i 
-                    
-                    parse[predict] = entry[2]
+
+                predict=i[1]-2
+                parse=i[3]
+                if predict<len(parse):
+                    parse[predict]=entry[3]
                 self._add_entry(state, (i[0], i[1] + 1, i[2], parse))
             self._make_progress()
 
@@ -226,7 +223,6 @@ class EarleyParser:
         self._log('\n# ...done!\n')
         for i in self._state[tok_len]:
             if i[2][1] == START_RULE:
-                print i[3]
                 # print self.get_best_parse(i[3])
                 return True
         return False
@@ -308,7 +304,6 @@ def main():
 
     grammar = Grammar(args[0])
     parser = EarleyParser(grammar)
-    print grammar
     sentences = open(args[1], 'r').readlines()
     for sen in sentences:
         sen = sen.split()
