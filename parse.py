@@ -97,7 +97,7 @@ class EarleyParser:
             # given the possible left ancestors B  for the current token, 
             # for each of these , see if there is a rule for A -> B * 
             # if so expand 
-            for B in SJ(symbol):
+            for B in SJ.get(symbol,[]):
                 for rule in self._grammar.get((symbol, B)):
                     self._add_entry(state, (state, 2, rule, [rule]))
                     self._make_progress()
@@ -175,7 +175,6 @@ class EarleyParser:
             SJ = {} # the left ancestor table
             # build the left corner table 
             self._left_corner(SJ, token)
-            self._log(str(SJ) + '\n', INFO)
             predicted_symbols = {}
             for entry in self._state[i]:
                 dot_pos = entry[1]
@@ -242,10 +241,12 @@ class Grammar:
         key = (symbol, leftchild)
         if key not in self.grammar: # if R(A,B) is empty add A to P(B)
             self.P[leftchild] = self.P.get(leftchild,[]) + [symbol]
-        if symbol == START_RULE:# we special case root 's entry to be root 
-            key = symbol 
+#        if symbol == START_RULE:# we special case root 's entry to be root 
+ #           key = symbol 
         self.grammar[key] = self.grammar.get(key, []) + [(weight, symbol) + tuple(expansion)]
-        
+        # for 1  S-> NP VP we store S NP: 1 S NP VP and  S : 1 S NP VP
+        key=symbol
+        self.grammar[key] = self.grammar.get(key, []) + [(weight, symbol) + tuple(expansion)]
         self.num_rules += 1
 
     def _make_grammar(self, file):
@@ -282,7 +283,7 @@ def main():
     columns = False 
     for o, a in opts:
         if o == '-t':
-            trace = true
+            trace = True
         if o == '-c':
             columns = True
     if len(args) != 2:
