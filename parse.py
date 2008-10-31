@@ -7,12 +7,12 @@ Ian Miers <imichaelmiers@gmail.com>
 """
 import getopt, sys , pdb
 
-#try:
-#    import psyco
-#    psyco.full()
-#except ImportError:
-#    sys.stderr.write("You don't have psyco installed. \
-#        This will run faster with psyco.\n")
+try:
+    import psyco
+    psyco.full()
+except ImportError:
+    sys.stderr.write("You don't have psyco installed. \
+        This will run faster with psyco.\n")
 
 START_RULE = 'ROOT'
 
