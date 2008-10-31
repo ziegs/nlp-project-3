@@ -81,7 +81,7 @@ class EarleyParser:
         if entry not in states[column]:
             states[column].append(entry)
             state_by_predict = self._state_by_predict[column]
-            if state_by_predict.has_key(dotsym):
+            if dotsym in state_by_predict:
                 state_by_predict[dotsym] += [entry]
             else:
                 state_by_predict[dotsym] = [entry]
@@ -127,32 +127,36 @@ class EarleyParser:
             except IndexError:
                 continue
             if dotsym == lhs:
-
-                predict=i[1]-2
-                parse=i[3]
+                predict = i[1] - 2
+                parse = i[3]
                # if predict<len(parse):
-                parse[predict]=entry # is the rule
+                parse[predict] = entry # is the rule
                 self._add_entry(state, (i[0], i[1] + 1, i[2], parse))
             self._make_progress()
 
-    def _best_parse_help(self, trace):
+    def _best_parse_help(self, entry, count = 0):
         """
         Helper function for generating the lightest parse of a sentence.
         """
-        rule = trace[0][1]
-        o = "(%s " % (rule)
-        for j in xrange(len(trace[1:])):
-            if len(trace[j + 1]) == 1:
-                nt = trace[j +1][0]
-                o += '(%s %s)' % (nt[1], nt[2])
+        rule = entry[2]
+        print entry
+        print "\n\n"
+        o = "(%s " % (rule[1])
+        if count > 5:
+            sys.exit(0)
+        for i in entry[3]:
+            count += 1
+            if isinstance(i, str):
+                o += '%s' % i
             else:
-                o += self._best_parse_help(trace[j + 1])
+                o += self._best_parse_help(i, count)
         return o + ")"
-    def get_best_parse(self, trace):
+    
+    def get_best_parse(self, entry):
         """
         Returns the lightest parse of the sentence.
         """
-        return "(ROOT %s)" % self._best_parse_help(trace)
+        return self._best_parse_help(entry)
     
     def _left_corner(self, SJ, Y):
         """
@@ -163,8 +167,8 @@ class EarleyParser:
             if X not in SJ : # if this is the first addition to SJ(X)
                 SJ[X] = [Y]  # add Y 
                 self._left_corner(SJ, X) # recursively process X 
-            else: # other wise just add Y 
-                SJ[X] = SJ.get(X, []) + [Y] # FIXME memory wastfull ?? better to do append ?
+            else: # other wise just add Y
+                SJ[X].append(Y) # FIXME memory wastfull ?? better to do append ?
      
     def parse(self, tokens):
         """
@@ -210,13 +214,13 @@ class EarleyParser:
                 elif grammar.is_nonterminal(dotsym):
                     self._predict(dotsym, i, predicted_symbols, SJ)
 
-            for sym in self._state[i]:
-                print sym[2]
-                print sym[3]
-                    
-                print "##"
+            #for sym in self._state[i]:
+            #    print sym[2]
+            #    print sym[3]
+            #        
+            #    print "##"
 
-            print ""
+            #print ""
             # self.tokens[i] is the next token 
             # we look at what predicts that token in our current state
 
@@ -235,7 +239,7 @@ class EarleyParser:
         self._log('\n# ...done!\n')
         for i in self._state[tok_len]:
             if i[2][1] == START_RULE:
-                # print self.get_best_parse(i[3])
+                #print self.get_best_parse(i)
                 return True
         return False
     
@@ -358,7 +362,7 @@ def profile_main():
 
 if __name__ == '__main__':
     # Uncomment the following line to profile the app
-    #profile_main()
-    main()
+    profile_main()
+    #main()
 
     
