@@ -31,10 +31,10 @@ class EarleyParser:
         self._grammar = grammar
         self._state = []
         self._state_by_predict = []
+        self._state_duplicates = []
         self._progress = 0
         self._trace = trace
         self.tokens = None
-        self.cur_token = 0
 
     def _log(self, msg, level=LOG):
         """ Logs a message. """
@@ -45,6 +45,7 @@ class EarleyParser:
         """ Reset the parser's state. """
         self._state = []
         self._state_by_predict = []
+        self._state_duplicates = []
         self.tokens = None
         self._progress = 0
 
@@ -62,6 +63,7 @@ class EarleyParser:
         """ Initializes the state prediction table. """
         for i in xrange(length):
             self._state_by_predict.append({})
+            self._state_duplicates.append({})
 
     def _setup_table(self, length):
         """ Initializes Earley column table. """
@@ -78,7 +80,9 @@ class EarleyParser:
             dotsym = None
             
         states = self._state
-        if entry not in states[column]:
+        dup_key = (entry[0], entry[1], entry[2])
+        if dup_key not in self._state_duplicates[column]:
+            self._state_duplicates[column][dup_key] = True
             states[column].append(entry)
             state_by_predict = self._state_by_predict[column]
             if dotsym in state_by_predict:
@@ -177,7 +181,6 @@ class EarleyParser:
         self._reset()
         
         self.tokens = tokens
-        self.cur_token = 0
         grammar = self._grammar
 
         tok_len = len(tokens)
@@ -362,7 +365,7 @@ def profile_main():
 
 if __name__ == '__main__':
     # Uncomment the following line to profile the app
-    profile_main()
-    #main()
+    #profile_main()
+    main()
 
     
