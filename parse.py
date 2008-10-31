@@ -7,18 +7,47 @@ Ian Miers <imichaelmiers@gmail.com>
 """
 import getopt, sys , pdb
 
-try:
-    import psyco
-    psyco.full()
-except ImportError:
-    sys.stderr.write("You don't have psyco installed. \
-        This will run faster with psyco.\n")
+#try:
+#    import psyco
+#    psyco.full()
+#except ImportError:
+#    sys.stderr.write("You don't have psyco installed. \
+#        This will run faster with psyco.\n")
 
 START_RULE = 'ROOT'
 
 INFO = 1 # Info log level
 LOG = 0 # Implied
 WARN = 2 # Warning log level
+
+class Weight:
+    def __init__(self, weight):
+        self.weight = weight
+    def set(self, weight):
+        self.weight = weight
+    def get(self):
+        return self.weight
+    def __str__(self):
+        return str(self.weight)
+
+class Rule:
+    def __init__(self, entry):
+        assert entry is not None
+        self.rule = entry
+
+    def set(self, entry):
+        assert entry is not None
+        self.rule = entry
+
+    def append(self, entry):
+        assert entry is not None
+        self.rule.append(entry)
+
+    def cat(self, entry):
+        assert entry is not None
+        self.rule += entry
+    def __str__(self):
+        return str(self.rule)
 
 class EarleyParser:
     """ A class for parsing sentences.  Implements Earley's Algorithm """
@@ -67,6 +96,8 @@ class EarleyParser:
 
     def _add_entry(self, column, entry):
         """ Adds an entry to a column in the state table. """
+        assert len(entry) == 5
+        assert isinstance(entry[3], Rule)
         dot_pos = entry[1]
         rule = entry[2]
         try:
@@ -77,13 +108,16 @@ class EarleyParser:
         states = self._state
         dup_key = (entry[0], entry[1], entry[2])
         if dup_key not in self._state_duplicates[column]:
-            self._state_duplicates[column][dup_key] = True
+            self._state_duplicates[column][dup_key] = entry
             states[column].append(entry)
             state_by_predict = self._state_by_predict[column]
             if dotsym in state_by_predict:
                 state_by_predict[dotsym] += [entry]
             else:
                 state_by_predict[dotsym] = [entry]
+            return None
+        else:
+            return self._state_duplicates[column][dup_key]
                 
     def _scan(self, word, state, entry):
         """ Scan phase of Earley's """
@@ -91,7 +125,7 @@ class EarleyParser:
             pass
         elif self.tokens[state] == word:
             self._add_entry(state + 1, (entry[0], entry[1] + 1, entry[2],
-                entry[3]))
+                entry[3], entry[4]))
         self._make_progress('Scanning')
 
     def _predict(self, symbol, state, predicted, SJ):
@@ -104,7 +138,7 @@ class EarleyParser:
             for B in SJ.get(symbol,[]):
                 for rule in self._grammar.get((symbol, B)):
                     parse = list(rule[2:])
-                    self._add_entry(state, (state, 2, rule, [rule]))
+                    self._add_entry(state, (state, 2, rule, Rule([rule]), Weight(rule[0])))
                     self._make_progress()
             SJ[symbol] = []
     def _complete(self, state, entry):
@@ -128,9 +162,15 @@ class EarleyParser:
             if dotsym == lhs:
                 predict = i[1] - 2
                 parse = i[3]
+                weight = Weight(i[4].get() + entry[4].get())
                # if predict<len(parse):
                # parse[predict] = entry # is the rule
-                self._add_entry(state, (i[0], i[1] + 1, i[2], parse + [entry[3]]))
+                exp = Rule(parse.rule + [entry[3].rule])
+                dup = self._add_entry(state, (i[0], i[1] + 1, i[2], exp, weight))
+                if dup:
+                    if weight.get() < dup[4].get():
+                        dup[3].set(parse.rule + [entry[3].rule])
+                        dup[4].set(weight.get())
             self._make_progress()
 
     def _best_parse_help(self, entry):
@@ -153,7 +193,7 @@ class EarleyParser:
         """
         Returns the lightest parse of the sentence.
         """
-        return self._best_parse_help(entry)
+        return self._best_parse_help(entry.rule)
     
     def _left_corner(self, SJ, Y):
         """
@@ -180,7 +220,7 @@ class EarleyParser:
         self._setup_table(tok_len + 1)
         self._setup_state_by_predict_table(tok_len + 2)
         # Rule format: (start at, index to predictor, rule, clients)
-        self._add_entry(0, (0, 2, self._grammar.start(), [self._grammar.start()]))
+        self._add_entry(0, (0, 2, self._grammar.start(), Rule([self._grammar.start()]), Weight(0.0)))
         self._log('# Parsing...')
         # Here is the actual algorithm
         for i in xrange(tok_len + 1):
