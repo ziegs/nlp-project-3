@@ -20,11 +20,6 @@ INFO = 1 # Info log level
 LOG = 0 # Implied
 WARN = 2 # Warning log level
 
-def pretty(printme,space):
-    print "%s %s "%(space,printme[2])
-    if isinstance(printme[3],list):
-        pretty(printme[3],space+" ");
-
 class EarleyParser:
     """ A class for parsing sentences.  Implements Earley's Algorithm """
     def __init__(self, grammar, trace=False):
@@ -109,7 +104,7 @@ class EarleyParser:
             for B in SJ.get(symbol,[]):
                 for rule in self._grammar.get((symbol, B)):
                     parse = list(rule[2:])
-                    self._add_entry(state, (state, 2, rule, parse))
+                    self._add_entry(state, (state, 2, rule, [rule]))
                     self._make_progress()
             SJ[symbol] = []
     def _complete(self, state, entry):
@@ -134,26 +129,22 @@ class EarleyParser:
                 predict = i[1] - 2
                 parse = i[3]
                # if predict<len(parse):
-                parse[predict] = entry # is the rule
-                self._add_entry(state, (i[0], i[1] + 1, i[2], parse))
+               # parse[predict] = entry # is the rule
+                self._add_entry(state, (i[0], i[1] + 1, i[2], parse + [entry[3]]))
             self._make_progress()
 
-    def _best_parse_help(self, entry, count = 0):
+    def _best_parse_help(self, entry):
         """
         Helper function for generating the lightest parse of a sentence.
         """
-        rule = entry[2]
-        print entry
-        print "\n\n"
-        o = "(%s " % (rule[1])
-        if count > 5:
-            sys.exit(0)
-        for i in entry[3]:
-            count += 1
-            if isinstance(i, str):
-                o += '%s' % i
+        rule = entry[0][1]
+        o = "(%s " % (rule)
+        for j in xrange(len(entry[1:])):
+            if len(entry[j + 1]) == 1:
+                nt = entry[j + 1][0]
+                o += '(%s %s)' % (nt[1], nt[2])
             else:
-                o += self._best_parse_help(i, count)
+                o += self._best_parse_help(entry[j + 1])
         return o + ")"
     
     def get_best_parse(self, entry):
@@ -187,7 +178,7 @@ class EarleyParser:
         self._setup_table(tok_len + 1)
         self._setup_state_by_predict_table(tok_len + 2)
         # Rule format: (start at, index to predictor, rule, clients)
-        self._add_entry(0, (0, 2, self._grammar.start(), [self._grammar.start()[2]]))
+        self._add_entry(0, (0, 2, self._grammar.start(), [self._grammar.start()]))
         self._log('# Parsing...')
         # Here is the actual algorithm
         for i in xrange(tok_len + 1):
@@ -217,16 +208,6 @@ class EarleyParser:
                 elif grammar.is_nonterminal(dotsym):
                     self._predict(dotsym, i, predicted_symbols, SJ)
 
-            #for sym in self._state[i]:
-            #    print sym[2]
-            #    print sym[3]
-            #        
-            #    print "##"
-
-            #print ""
-            # self.tokens[i] is the next token 
-            # we look at what predicts that token in our current state
-
             for entry in self._state_by_predict[i].get(token, []):
                 dot_pos = entry[1]
                 rule = entry[2]
@@ -242,7 +223,7 @@ class EarleyParser:
         self._log('\n# ...done!\n')
         for i in self._state[tok_len]:
             if i[2][1] == START_RULE:
-                #print self.get_best_parse(i)
+                print self.get_best_parse(i[3])
                 return True
         return False
     
