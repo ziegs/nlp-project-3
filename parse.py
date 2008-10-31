@@ -170,7 +170,6 @@ class EarleyParser:
                 dup = self._add_entry(state, (i[0], i[1] + 1, i[2], exp, weight))
                 if dup:
                     if weight.get() < dup[4].get():
-                        print 'hi, my weight, %d, is less than his weight %d' % (weight.get(), dup[4].get())
                         dup[3].set(parse.rule + [entry[3].rule])
                         dup[4].set(weight.get())
             self._make_progress()
