@@ -138,13 +138,15 @@ class EarleyParser:
         Helper function for generating the lightest parse of a sentence.
         """
         rule = entry[0][1]
+        expand = entry[0][2:]
         o = "(%s " % (rule)
-        for j in xrange(len(entry[1:])):
-            if len(entry[j + 1]) == 1:
-                nt = entry[j + 1][0]
-                o += '(%s %s)' % (nt[1], nt[2])
+        prod = 1
+        for e in expand:
+            if self._grammar.is_terminal(e):
+                o += str(e)
             else:
-                o += self._best_parse_help(entry[j + 1])
+                o += self._best_parse_help(entry[prod])
+                prod += 1
         return o + ")"
     
     def get_best_parse(self, entry):
