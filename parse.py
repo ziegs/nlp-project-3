@@ -59,6 +59,7 @@ class EarleyParser:
         self._progress = 0
         self._trace = trace
         self.tokens = None
+        self._parse_weight = 0
 
     def _log(self, msg, level=LOG):
         """ Logs a message. """
@@ -72,6 +73,7 @@ class EarleyParser:
         self._state_duplicates = []
         self.tokens = None
         self._progress = 0
+        self._parse_weight = 0
 
     def _make_progress(self, msg=''):
         """ Will mark a progress "." every 5000 operations. """
@@ -177,6 +179,7 @@ class EarleyParser:
         """
         Helper function for generating the lightest parse of a sentence.
         """
+        self._parse_weight += entry[0][0]
         rule = entry[0][1]
         expand = entry[0][2:]
         o = "(%s " % (rule)
@@ -268,7 +271,8 @@ class EarleyParser:
                 print self.get_best_parse(i[3])
                 return True
         return False
-    
+    def parse_weight(self):
+        return self._parse_weight
                 
 
 class Grammar:
@@ -354,10 +358,10 @@ def main():
         if trace:
             print "# Parsing: %s" % str(' '.join(sen))
         valid = parser.parse(sen)
-        if valid and trace:
-            print "# Yes"
-        elif trace:
-            print "# No"
+        if valid:
+            print parser.parse_weight()
+        else:
+            print 'NONE'
 
         if trace:
             pass  
